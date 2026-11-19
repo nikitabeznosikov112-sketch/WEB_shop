@@ -96,7 +96,7 @@ class ProductRepository:
 
 class ClientRepository:
     def __init__(self, session: Session):
-        self.session = Session()
+        self.session = session
 
     def registrate(self, name: str, surname: str, login: str, password: str):
         if len(password) < 10:
@@ -104,7 +104,7 @@ class ClientRepository:
         if self.session.query(Client).filter_by(login=login).first():
             return False            
         hashed_password = generate_password_hash(password)
-        user = Seller(name=name, surname=surname, login=login, password_hash=hashed_password)
+        user = Client(name=name, surname=surname, login=login, password_hash=hashed_password)
         self.session.add(user)
         try:
             self.session.commit()
