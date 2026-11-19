@@ -1,0 +1,187 @@
+from database import Seller, Product, Deal, Client
+from sqlalchemy.orm import Session
+from werkzeug.security import generate_password_hash, check_password_hash
+
+class SellerRepository:
+    def __init__(self, session: Session):
+        self.session = session
+
+    def get_by_id(self, id: int):
+        return self.session.query(Seller).filter_by(id=id).first()
+
+    def registrate(self, name: str, surname: str, login: str, password: str):
+        if len(password) < 10:
+            return False 
+        if self.session.query(Seller).filter_by(login=login).first():
+            return False            
+        hashed_password = generate_password_hash(password)
+        user = Seller(name=name, surname=surname, login=login, password_hash=hashed_password)
+        self.session.add(user)
+        try:
+            self.session.commit()
+            return user
+        except Exception as e:
+            self.session.rollback()
+            return False
+
+    def login(self, login: str, password: str):
+        user = self.session.query(Seller).filter_by(login=login).first()
+        if not user:
+            return None
+        if not check_password_hash(user.password_hash, password):
+            return None
+        return user
+
+    def get_products(self, id: int):
+        user = self.session.query(Seller).filter_by(id=id).first()
+        if not user:
+            return False
+        if not user.products:
+            return None
+        return user.products
+
+    def get_deals(self, id: int):
+        user = self.session.query(Seller).filter_by(id=id).first()
+        if not user:
+            return False
+        if not user.deals:
+            return None
+        return user.deals
+
+    def delete_account(self, id: int):
+        user = self.session.query(Seller).filter_by(id=id).first()
+        self.session.delete(user)
+        try:
+            self.session.commit()
+            return True
+        except Exception as e:
+            return False
+
+    def change_ns(self, id: int, name: str, surname: str):
+        user = self.session.query(Seller).filter_by(id=id).first()
+        user.name = name
+        user.surname = surname
+        try:
+            self.session.commit()
+            return user
+        except Exception as e:
+            self.session.rollback()
+            return False
+class ProductRepository:
+    def __init__(self, session: Session):
+        self.session = session
+
+    def create_product(self, seller_id: int, name: str, description: str, price: int):
+        product = Product(name=name, seller=seller_id, price=price, description=description)
+        self.session.add(product)
+        try:
+            self.session.commit()
+            return product
+        except Exception as e:
+            self.session.rollback()
+            return False
+
+    def delete_product(self, id: int):
+        product = self.session.query(Product).filter_by(id=id).first()
+        self.session.delete(product)
+        try:
+            self.session.commit()
+            return True
+        except Exception as e:
+            self.session.rollback()
+            return False
+
+    def get_all_products(self):
+        return self.session.query(Product).filter_by(status=True).all()
+
+class ClientRepository:
+    def __init__(self, session: Session):
+        self.session = Session()
+
+    def registrate(self, name: str, surname: str, login: str, password: str):
+        if len(password) < 10:
+            return False 
+        if self.session.query(Client).filter_by(login=login).first():
+            return False            
+        hashed_password = generate_password_hash(password)
+        user = Seller(name=name, surname=surname, login=login, password_hash=hashed_password)
+        self.session.add(user)
+        try:
+            self.session.commit()
+            return user
+        except Exception as e:
+            self.session.rollback()
+            return False
+
+    def login(self, login: str, password: str):
+        user = self.session.query(Client).filter_by(login=login).first()
+        if not user:
+            return None
+        if not check_password_hash(user.password_hash, password):
+            return None
+        return user
+
+    def get_deals(self, id):
+        return self.session.query(Client).filter_by(id=id)
+
+    def delete_account(self, id: int):
+        user = self.session.query(Client).filter_by(id=id).first()
+        self.session.delete(user)
+        try:
+            self.session.commit()
+            return True
+        except Exception as e:
+            return False
+
+    def change_ns(self, id: int, name: str, surname: str):
+        user = self.session.query(Client).filter_by(id=id).first()
+        user.name = name
+        user.surname = surname
+        try:
+            self.session.commit()
+            return user
+        except Exception as e:
+            self.session.rollback()
+            return False
+
+class DealRepositorie:
+    def __init__(self, session: Session):
+        self.session = session
+
+    def create_deal(self, client_id: int, product_id: int, seller_id: int):
+        deal = Deal(seller=seller_id, product=product_id, client=client_id)
+        self.session.add(deal)
+        try:
+            self.session.commit()
+            return deal
+        except Exception as e:
+            return False
+
+    def end_deal(self, id: int):
+        deal = self.session.query(Deal).filter_by(id=id).first()
+        deal.status=True
+        deal.active=False
+        try:
+            self.session.commit()
+            return True
+        except Exception as e:
+            self.session.rollback()
+            return False
+
+    def cancel_deal(self, id: int):
+        deal = self.session.query(Deal).filter_by(id=id).first()
+        deal.active=False
+        try:
+            self.session.commit()
+            return True
+        except Exception as e:
+            return False
+
+
+
+    
+
+
+
+
+    
