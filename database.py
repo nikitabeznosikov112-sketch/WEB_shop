@@ -7,8 +7,8 @@ from datetime import datetime
 load_dotenv()
 engine = create_engine(os.getenv("DATABASE_URL"))
 Base = declarative_base()
-Session = sessionmaker()
-
+Session = sessionmaker(bind=engine)
+        
 class Seller(Base):
     __tablename__ = 'sellers'
 
@@ -25,7 +25,7 @@ class Product(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
-    seller = Column(Integer, ForeignKey('sellers.id'), nullable=False)
+    seller_id = Column(Integer, ForeignKey('sellers.id'), nullable=False)
     description = Column(Text, nullable=False)
     price = Column(Integer, nullable=False)
     status = Column(Boolean, nullable=False, default=True)
@@ -50,14 +50,13 @@ class Deal(Base):
     __tablename__ = 'deals'
 
     id = Column(Integer, primary_key=True)
-    seller = Column(Integer, ForeignKey('sellers.id'), nullable=False)
-    client = Column(Integer, ForeignKey('clients.id'), nullable=False)
-    product = Column(Integer, ForeignKey('products.id'), nullable=False)
+    seller_id = Column(Integer, ForeignKey('sellers.id'), nullable=False)
+    client_id = Column(Integer, ForeignKey('clients.id'), nullable=False)
+    product_id = Column(Integer, ForeignKey('products.id'), nullable=False)
     status = Column(Boolean, nullable=False)
     date = Column(DateTime(timezone=True), nullable=False, default=func.now())
     active = Column(Boolean, nullable=False, default=True)
 
-    seller = relationship('Seller', back_populates='deal')
-    deal = relationship('Product', back_populates='deal')
+    seller = relationship('Seller', back_populates='deals')
+    product = relationship('Product', back_populates='deal')
     client = relationship('Client', back_populates='deal')
-

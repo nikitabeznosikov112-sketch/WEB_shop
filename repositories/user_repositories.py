@@ -1,7 +1,15 @@
 from database import Seller, Product, Deal, Client
 from sqlalchemy.orm import Session
 from werkzeug.security import generate_password_hash, check_password_hash
+from jose import jwt
+from datetime import datetime, timedelta
+import os
+from dotenv import load_dotenv
 
+load_dotenv
+SECRET_KEY = os.getenv('SECRET_KEY')
+ALGORITHM = "HS256"
+    
 class SellerRepository:
     def __init__(self, session: Session):
         self.session = session
@@ -11,9 +19,9 @@ class SellerRepository:
 
     def registrate(self, name: str, surname: str, login: str, password: str):
         if len(password) < 10:
-            return False 
+            return None
         if self.session.query(Seller).filter_by(login=login).first():
-            return False            
+            return None            
         hashed_password = generate_password_hash(password)
         user = Seller(name=name, surname=surname, login=login, password_hash=hashed_password)
         self.session.add(user)
@@ -22,7 +30,7 @@ class SellerRepository:
             return user
         except Exception as e:
             self.session.rollback()
-            return False
+            return None
 
     def login(self, login: str, password: str):
         user = self.session.query(Seller).filter_by(login=login).first()
@@ -30,7 +38,15 @@ class SellerRepository:
             return None
         if not check_password_hash(user.password_hash, password):
             return None
-        return user
+
+        payload = {
+            "sub": str(user.id),
+            "role": "seller",
+            "exp": datetime.utcnow() + timedelta(hours=24)
+        }
+        token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+        return {"user": user, "access_token": token, "token_type": "bearer"}
 
     def get_products(self, id: int):
         user = self.session.query(Seller).filter_by(id=id).first()
@@ -100,9 +116,9 @@ class ClientRepository:
 
     def registrate(self, name: str, surname: str, login: str, password: str):
         if len(password) < 10:
-            return False 
+            return None
         if self.session.query(Client).filter_by(login=login).first():
-            return False            
+            return None           
         hashed_password = generate_password_hash(password)
         user = Client(name=name, surname=surname, login=login, password_hash=hashed_password)
         self.session.add(user)
@@ -111,7 +127,7 @@ class ClientRepository:
             return user
         except Exception as e:
             self.session.rollback()
-            return False
+            return None
 
     def login(self, login: str, password: str):
         user = self.session.query(Client).filter_by(login=login).first()
@@ -119,7 +135,14 @@ class ClientRepository:
             return None
         if not check_password_hash(user.password_hash, password):
             return None
-        return user
+        payload = {
+            "sub": str(user.id),
+            "role": "client",
+            "exp": datetime.utcnow() + timedelta(hours=24)
+        }
+        token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+        return {"user": user, "access_token": token, "token_type": "bearer"}
 
     def get_deals(self, id):
         return self.session.query(Client).filter_by(id=id)
@@ -149,7 +172,7 @@ class DealRepositorie:
         self.session = session
 
     def create_deal(self, client_id: int, product_id: int, seller_id: int):
-        deal = Deal(seller=seller_id, product=product_id, client=client_id)
+        deal = Deal(seller_id=seller_id, product_id=product_id, client_id=client_id)
         self.session.add(deal)
         try:
             self.session.commit()
