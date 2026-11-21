@@ -5,10 +5,22 @@ from jose import jwt
 from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
+from fastapi import Cookie, HTTPException
 
 load_dotenv
 SECRET_KEY = os.getenv('SECRET_KEY')
 ALGORITHM = "HS256"
+
+def get_current_user(access_token: str = Cookie(None)):
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Вы не авторизованы")
+    try:
+        payload = jwt.decode(access_token, SECRET_KEY, algorithms=[ALGORITHM])
+        return {"user_id": int(payload["sub"]), "role": payload["role"]}
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Сессия истекла")
+    except jwt.JWTError:
+        raise HTTPException(status_code=401, detail="Неверный токен")
     
 class SellerRepository:
     def __init__(self, session: Session):
@@ -48,21 +60,27 @@ class SellerRepository:
 
         return {"user": user, "access_token": token, "token_type": "bearer"}
 
-    def get_products(self, id: int):
-        user = self.session.query(Seller).filter_by(id=id).first()
-        if not user:
+    def create_product(self, id: int, name: str, description: str, price: int, ):
+        product = Product(seller_id=id, name=name, description=description, price=price)
+        self.session.add(product)
+        try:
+            self.session.commit()
+            return product
+        except Exception as e:
+            self.session.rollback()
             return False
-        if not user.products:
-            return None
-        return user.products
+        
+    def get_active_products(self, id: int):
+        products = self.session.query(Product).filter_by(seller_id=id, status=True).all()
+        if not products:
+            return False
+        return products
 
     def get_deals(self, id: int):
-        user = self.session.query(Seller).filter_by(id=id).first()
-        if not user:
+        deals = self.session.query(Deal).filter_by(seller_id=id, active=True).all()
+        if not deals:
             return False
-        if not user.deals:
-            return None
-        return user.deals
+        return deals
 
     def delete_account(self, id: int):
         user = self.session.query(Seller).filter_by(id=id).first()
@@ -114,6 +132,9 @@ class ClientRepository:
     def __init__(self, session: Session):
         self.session = session
 
+    def get_by_id(self, id: int):
+        return self.session.query(Client).filter_by(id=id).first()
+
     def registrate(self, name: str, surname: str, login: str, password: str):
         if len(password) < 10:
             return None
@@ -144,8 +165,13 @@ class ClientRepository:
 
         return {"user": user, "access_token": token, "token_type": "bearer"}
 
+
+
     def get_deals(self, id):
-        return self.session.query(Client).filter_by(id=id)
+        deals = self.session.query(Deal).filter_by(client_id=id, active=True).all()
+        if not deals:
+            return False
+        return deals
 
     def delete_account(self, id: int):
         user = self.session.query(Client).filter_by(id=id).first()

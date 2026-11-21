@@ -41,3 +41,9 @@ def registrate_web(request: Request, response: Response, login: str = Form(...),
     if not result:
         return templates.TemplateResponse(request=request, name="logreg.html", context={'error': "Слишком слабый пароль или логин занят"})
     return RedirectResponse(url='/logreg/', status_code=303)
+
+@router.post("/logout")
+def logout():
+    response = RedirectResponse(url='/logreg', status_code=303)
+    response.delete_cookie("access_token")
+    return response
