@@ -6,5 +6,23 @@
     </head>
     <body>
         <a href="/profile/">Профиль</a>
+        {% if products %}
+        {% for product in products %}
+        <div class="card">
+            <div class="card-row">
+                <span class="card-label">Наименование</span>
+                <span class="card-value">{{ product.name }}</span>
+            </div>
+            <div class="card-row">
+                <span class="card-label">Цена</span>
+                <span class="card-value">{{ product.price }}р.</span>
+            </div>
+            <div class="card-row">
+                <span class="card-label">Дата объявления</span>
+                <span class="card-value">{{ product.date }}</span>
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
     </body>
 </html>
