@@ -5,22 +5,12 @@ from jose import jwt
 from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
-from fastapi import Cookie, HTTPException
 
-load_dotenv
+load_dotenv()
 SECRET_KEY = os.getenv('SECRET_KEY')
 ALGORITHM = "HS256"
 
-def get_current_user(access_token: str = Cookie(None)):
-    if not access_token:
-        raise HTTPException(status_code=401, detail="Вы не авторизованы")
-    try:
-        payload = jwt.decode(access_token, SECRET_KEY, algorithms=[ALGORITHM])
-        return {"user_id": int(payload["sub"]), "role": payload["role"]}
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Сессия истекла")
-    except jwt.JWTError:
-        raise HTTPException(status_code=401, detail="Неверный токен")
+
     
 class SellerRepository:
     def __init__(self, session: Session):
@@ -60,6 +50,22 @@ class SellerRepository:
 
         return {"user": user, "access_token": token, "token_type": "bearer"}
 
+    def change_password(self, user_id,  password, new_password):
+        if password == new_password:
+            return {'error': 'Новый пароль не должен совпадать со старым'}
+        if len(new_password) < 8:
+            return {'error': 'Пароль слишком слабый'}
+        user = self.session.query(Seller).filter_by(id=user_id).first()
+        if not check_password_hash(user.password_hash, password):
+            return {'error': 'Пароль неправильный'}
+        user.password_hash = generate_password_hash(new_password)
+        try:
+            self.session.commit()
+            return {'success': 'Пароль сменен'}
+        except Exception as e:
+            self.session.rollback()
+            return {'error': 'Непридведенная ошибка, повторите позже'}
+        
     def create_product(self, id: int, name: str, description: str, price: int, ):
         product = Product(seller_id=id, name=name, description=description, price=price)
         self.session.add(product)
@@ -165,7 +171,21 @@ class ClientRepository:
 
         return {"user": user, "access_token": token, "token_type": "bearer"}
 
-
+    def change_password(self, user_id,  password, new_password):
+        if password == new_password:
+            return {'error': 'Новый пароль не должен совпадать со старым'}
+        if len(new_password) < 8:
+            return {'error': 'Пароль слишком слабый'}
+        user = self.session.query(Client).filter_by(id=user_id).first()
+        if not check_password_hash(user.password_hash, password):
+            return {'error': 'Пароль неправильный'}
+        user.password_hash = generate_password_hash(new_password)
+        try:
+            self.session.commit()
+            return {'success': 'Пароль сменен'}
+        except Exception as e:
+            self.session.rollback()
+            return {'error': 'Непридведенная ошибка, повторите позже'}
 
     def get_deals(self, id):
         deals = self.session.query(Deal).filter_by(client_id=id, active=True).all()

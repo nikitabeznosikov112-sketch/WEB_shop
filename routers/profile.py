@@ -1,18 +1,12 @@
 from fastapi import APIRouter, Form, Request, Response, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from database import Session
-from repositories.user_repositories import ClientRepository, SellerRepository, get_current_user
-
+from repositories.user_repositories import ClientRepository, SellerRepository
+from dependencies import get_repo, get_current_user
 templates = Jinja2Templates(directory='templates')
 
 router = APIRouter(prefix='/profile')
-def get_repo():
-    session = Session()
-    try:
-        yield session
-    finally:
-        session.close()
+
 
 @router.get('/', response_class=HTMLResponse)
 def show_profile(request: Request, session = Depends(get_repo), user_data: dict = Depends(get_current_user)):
@@ -75,5 +69,8 @@ def change_ns(session = Depends(get_repo), user_data: dict = Depends(get_current
 
     return RedirectResponse(url='/profile/', status_code=303)
 
+@router.post("/settings/change_passwd", response_class=HTMLResponse)
+def change_passwd(request: Request, user_data: dict = Depends(get_current_user)):
+    return templates.TemplateResponse(request=request, name='change_password.html')
 
 

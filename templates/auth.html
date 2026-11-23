@@ -129,7 +129,7 @@
         {% endif %}
         <p>Привет</p>
         <a>Войти</a>
-        <form action="/logreg/login" method="POST">
+        <form action="/auth/login" method="POST">
             <label for="user_type">Войти как:</label>
             <select id="user_type" name="user_type" required>
                 <option value="seller">Продавец</option>
@@ -140,7 +140,7 @@
             <button type="submit">Войти</button>
         </form>
         <a>Зарегистрироваться</a>
-        <form action="/logreg/registration" method="POST">
+        <form action="/auth/registration" method="POST">
             <label for="user_type">Зарегистрироваться как</label>
             <select id="user_type" name="user_type" required>
                 <option value="seller">Продавец</option>
